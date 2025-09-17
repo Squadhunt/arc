@@ -27,13 +27,21 @@ const recruitmentRoutes = require('./routes/recruitment');
 const adminRoutes = require('./routes/admin');
 const feedbackRoutes = require('./routes/feedback');
 
-// Connect to database
-connectDB();
+// Connect to database (with error handling)
+connectDB().catch(err => {
+  console.error('Database connection failed:', err.message);
+  console.log('Server will continue without database connection');
+});
 
 const app = express();
 
-// Database connection check middleware
+// Database connection check middleware (optional for health checks)
 app.use((req, res, next) => {
+  // Skip database check for health endpoints
+  if (req.path === '/api/health' || req.path === '/api/simple-health' || req.path === '/api/test-connection') {
+    return next();
+  }
+  
   if (mongoose.connection.readyState !== 1) {
     return res.status(503).json({
       success: false,
@@ -217,6 +225,16 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime(),
     memoryUsage: process.memoryUsage(),
     connectedUsers: connectedUsers.size
+  });
+});
+
+// Simple health check without database dependency
+app.get('/api/simple-health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Server is running!',
+    timestamp: new Date().toISOString(),
+    status: 'OK'
   });
 });
 
