@@ -1,6 +1,6 @@
-# GameConnect Frontend
+# ARC Frontend
 
-A modern React frontend for the GameConnect gaming social media platform.
+A modern React frontend for the ARC Gaming platform.
 
 ## Features
 
@@ -148,4 +148,4 @@ The app is fully responsive and works on:
 
 ## License
 
-This project is part of the GameConnect platform.
+This project is part of the ARC Gaming platform.

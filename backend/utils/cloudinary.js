@@ -11,7 +11,7 @@ const uploadImage = async (file, folder = 'gaming-social') => {
         transformation: [
           { width: 1200, height: 1200, crop: 'limit' },
           { quality: 'auto' },
-          { format: 'auto' }
+          { fetch_format: 'auto' }
         ]
       },
       (error, result) => {
@@ -42,11 +42,17 @@ const uploadVideo = async (file, folder = 'gaming-social') => {
       {
         folder: folder,
         resource_type: 'video',
-        transformation: [
-          { width: 1280, height: 720, crop: 'limit' },
-          { quality: 'auto' },
-          { format: 'auto' }
-        ]
+        eager: [
+          { 
+            width: 1280, 
+            height: 720, 
+            crop: 'fill',
+            gravity: 'auto',
+            quality: 'auto'
+          }
+        ],
+        eager_async: true,
+        eager_notification_url: null
       },
       (error, result) => {
         if (error) {
@@ -80,7 +86,7 @@ const uploadAvatar = async (file, folder = 'gaming-social/avatars') => {
         transformation: [
           { width: 400, height: 400, crop: 'fill', gravity: 'face' },
           { quality: 'auto' },
-          { format: 'auto' }
+          { fetch_format: 'auto' }
         ]
       },
       (error, result) => {

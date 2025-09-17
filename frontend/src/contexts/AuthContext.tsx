@@ -1,17 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import axios from 'axios';
+import config from '../config/config';
 
 interface User {
   _id: string;
   username: string;
   email: string;
-  userType: 'player' | 'team';
+  userType: 'player' | 'team' | 'admin';
   profile?: {
     displayName: string;
     bio?: string;
     location?: string;
     website?: string;
     avatar?: string;
+    banner?: string;
     gamingPreferences?: string[];
     socialLinks?: {
       discord?: string;
@@ -20,7 +22,7 @@ interface User {
     };
   };
   profilePicture?: string;
-  role?: 'player' | 'team';
+  role?: 'player' | 'team' | 'admin';
   followers: string[];
   following: string[];
   createdAt: string;
@@ -39,7 +41,7 @@ const transformUserData = (userData: any): User => {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -51,7 +53,7 @@ interface RegisterData {
   username: string;
   email: string;
   password: string;
-  userType: 'player' | 'team';
+  userType: 'player' | 'team' | 'admin'; // admin type for internal use only
   displayName: string;
   bio?: string;
 }
@@ -78,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const responseInterceptorRef = useRef<number | null>(null);
 
   // Set up axios defaults
-  axios.defaults.baseURL = 'http://localhost:5000';
+  axios.defaults.baseURL = config.apiUrl;
 
   // Add axios interceptors for authentication
   useEffect(() => {
@@ -87,7 +89,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       (config) => {
         const token = localStorage.getItem('token');
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+          // Validate token format before sending
+          try {
+            const tokenParts = token.split('.');
+            if (tokenParts.length === 3) {
+              config.headers.Authorization = `Bearer ${token}`;
+            } else {
+              console.warn('Invalid token format, removing token');
+              localStorage.removeItem('token');
+            }
+          } catch (error) {
+            console.warn('Token validation error, removing token');
+            localStorage.removeItem('token');
+          }
         }
         return config;
       },
@@ -102,8 +116,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return response;
       },
       (error) => {
+        // Handle 401 errors more broadly
         if (error.response?.status === 401) {
-          // Clear token and user data on authentication error
+          console.log('Authentication error (401), clearing token');
           localStorage.removeItem('token');
           delete axios.defaults.headers.common['Authorization'];
           setUser(null);
@@ -126,24 +141,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check for stored token on app load
   useEffect(() => {
     const token = localStorage.getItem('token');
+    console.log('Auth check on app load - token exists:', !!token, 'loading:', loading);
+    
     if (token && !authCheckRef.current) {
       authCheckRef.current = true;
-      checkAuthStatus();
+      console.log('Starting auth check with token');
+      
+      // Add a fallback timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        if (loading) {
+          console.log('Auth check timeout, setting loading to false');
+          setLoading(false);
+          authCheckRef.current = false;
+        }
+      }, 15000); // 15 second fallback timeout
+      
+      checkAuthStatus().finally(() => {
+        clearTimeout(timeoutId);
+      });
     } else {
+      // If no token, set loading to false immediately
+      console.log('No token found, setting loading to false');
       setLoading(false);
     }
   }, []);
 
+  // Server health check function
+  const checkServerHealth = async (): Promise<boolean> => {
+    try {
+      const response = await axios.get('/api/health', { timeout: 5000 });
+      return response.data.success;
+    } catch (error) {
+      console.error('Server health check failed:', error);
+      return false;
+    }
+  };
+
   const checkAuthStatus = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/auth/me');
+      
+      // Add timeout to prevent hanging
+      const response = await axios.get('/api/auth/me', { 
+        timeout: 10000 // 10 second timeout
+      });
       setUser(transformUserData(response.data.data.user));
+      console.log('User authenticated successfully');
     } catch (error: any) {
       console.error('Auth check failed:', error);
-      // Clear invalid token
-      localStorage.removeItem('token');
-      setUser(null);
+      
+      // Clear token for authentication errors or timeout
+      if (error.response?.status === 401 || 
+          error.response?.status === 403 || 
+          error.code === 'ECONNABORTED' ||
+          error.message?.includes('timeout')) {
+        console.log('Authentication error or timeout, clearing token');
+        localStorage.removeItem('token');
+        delete axios.defaults.headers.common['Authorization'];
+        setUser(null);
+      }
     } finally {
       setLoading(false);
       authCheckRef.current = false;
@@ -161,10 +217,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Set new token and user
       localStorage.setItem('token', token);
-      setUser(transformUserData(user));
+      const transformedUser = transformUserData(user);
+      setUser(transformedUser);
       
       // Update axios default header
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // Return the user data for immediate use
+      return transformedUser;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Login failed');
     } finally {

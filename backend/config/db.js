@@ -4,15 +4,16 @@ const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       maxPoolSize: 10, // Maintain up to 10 socket connections
-      serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+      serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
       retryWrites: true,
       w: 'majority',
       // Additional recommended options for stability
       minPoolSize: 1, // Minimum number of connections in the pool
       maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-      connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
-      heartbeatFrequencyMS: 10000 // Send a heartbeat every 10 seconds
+      connectTimeoutMS: 30000, // Give up initial connection after 30 seconds
+      heartbeatFrequencyMS: 10000, // Send a heartbeat every 10 seconds
+      bufferCommands: true // Enable mongoose buffering to prevent connection issues
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);

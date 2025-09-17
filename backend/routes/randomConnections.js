@@ -8,12 +8,75 @@ const {
   disconnectConnection,
   sendMessage,
   getConnectionHistory,
-  cleanupUserConnections
+  cleanupUserConnections,
+  getQueueStatus,
+  cleanupCurrentConnection
 } = require('../controllers/randomConnectionController');
+
+const ConnectionQueue = require('../models/ConnectionQueue');
+const RandomConnection = require('../models/RandomConnection');
 
 const router = express.Router();
 
-// All routes require authentication
+// Test endpoint to check queue status (no auth required for testing)
+router.get('/queue-status', async (req, res) => {
+  try {
+    const queueCount = await ConnectionQueue.countDocuments({ status: 'waiting' });
+    const activeConnections = await RandomConnection.countDocuments({ status: 'active' });
+    
+    res.status(200).json({
+      success: true,
+      queueCount,
+      activeConnections,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get queue status',
+      error: error.message
+    });
+  }
+});
+
+// Debug endpoint to get detailed queue status (no auth required for testing)
+router.get('/debug-queue-status', async (req, res) => {
+  try {
+    const queueEntries = await ConnectionQueue.find({ status: 'waiting' }).sort({ createdAt: 1 });
+    const activeConnections = await RandomConnection.find({ status: 'active' });
+    
+    res.status(200).json({
+      success: true,
+      queueEntries: queueEntries.map(entry => ({
+        userId: entry.userId,
+        username: entry.username,
+        selectedGame: entry.selectedGame,
+        videoEnabled: entry.videoEnabled,
+        createdAt: entry.createdAt
+      })),
+      activeConnections: activeConnections.map(conn => ({
+        roomId: conn.roomId,
+        participants: conn.participants.map(p => ({
+          userId: p.userId,
+          username: p.username
+        })),
+        selectedGame: conn.selectedGame,
+        createdAt: conn.createdAt
+      })),
+      queueCount: queueEntries.length,
+      activeConnectionCount: activeConnections.length
+    });
+  } catch (error) {
+    console.error('Get queue status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get queue status',
+      error: error.message
+    });
+  }
+});
+
+// All routes require authentication except test endpoints
 router.use(protect);
 
 // Validation middleware
@@ -45,12 +108,13 @@ const disconnectValidation = [
 ];
 
 // Routes
-router.post('/join-queue', joinQueueValidation, joinQueue);
-router.delete('/leave-queue', leaveQueue);
-router.get('/current-connection', getCurrentConnection);
-router.post('/disconnect', disconnectValidation, disconnectConnection);
-router.post('/send-message', sendMessageValidation, sendMessage);
-router.get('/history', getConnectionHistory);
-router.post('/cleanup', cleanupUserConnections);
+router.post('/join-queue', protect, joinQueueValidation, joinQueue);
+router.delete('/leave-queue', protect, leaveQueue);
+router.get('/current-connection', protect, getCurrentConnection);
+router.post('/disconnect', protect, disconnectValidation, disconnectConnection);
+router.post('/send-message', protect, sendMessageValidation, sendMessage);
+router.get('/history', protect, getConnectionHistory);
+router.post('/cleanup', protect, cleanupUserConnections);
+router.post('/cleanup-current', protect, cleanupCurrentConnection);
 
 module.exports = router;

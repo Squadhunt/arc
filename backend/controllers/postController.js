@@ -2,6 +2,7 @@ const Post = require('../models/Post');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { uploadMultipleFiles } = require('../utils/cloudinary');
+const { createLikeNotification, createCommentNotification } = require('../utils/notificationService');
 
 // Create new post
 const createPost = async (req, res) => {
@@ -245,16 +246,7 @@ const toggleLike = async (req, res) => {
 
       // Create notification for post author (if not liking own post)
       if (post.author.toString() !== userId.toString()) {
-        await Notification.createNotification({
-          recipient: post.author,
-          sender: userId,
-          type: 'like',
-          title: 'New Like',
-          message: `${req.user.profile.displayName} liked your post`,
-          data: {
-            postId: post._id
-          }
-        });
+        await createLikeNotification(post.author, userId, post._id);
       }
     }
 
@@ -317,16 +309,7 @@ const addComment = async (req, res) => {
 
     // Create notification for post author (if not commenting on own post)
     if (post.author.toString() !== userId.toString()) {
-      await Notification.createNotification({
-        recipient: post.author,
-        sender: userId,
-        type: 'comment',
-        title: 'New Comment',
-        message: `${req.user.profile.displayName} commented on your post`,
-        data: {
-          postId: post._id
-        }
-      });
+      await createCommentNotification(post.author, userId, post._id, text.trim());
     }
 
     const newComment = post.comments[post.comments.length - 1];
@@ -509,13 +492,225 @@ const reportPost = async (req, res) => {
   }
 };
 
+// Get personalized feed using recommendation engine
+const getPersonalizedFeed = async (req, res) => {
+  try {
+    // Fallback to regular feed since recommendation engine is not available
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    const { postType, author, tags, visibility } = req.query;
+
+    // Build filter object
+    const filter = { isActive: true };
+    
+    if (postType) filter.postType = postType;
+    if (author) filter.author = author;
+    if (tags) filter.tags = { $in: tags.split(',') };
+    if (visibility) filter.visibility = visibility;
+
+    // If user is not authenticated, only show public posts
+    if (!req.user) {
+      filter.visibility = 'public';
+    } else {
+      // If user is authenticated, show public posts and their own posts
+      if (!visibility) {
+        filter.$or = [
+          { visibility: 'public' },
+          { author: req.user._id },
+          { 
+            visibility: 'followers',
+            author: { $in: req.user.following }
+          }
+        ];
+      }
+    }
+
+    const posts = await Post.find(filter)
+      .populate('author', 'username profile.displayName profile.avatar userType')
+      .populate('likes.user', 'username profile.displayName profile.avatar')
+      .populate('comments.user', 'username profile.displayName profile.avatar')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Post.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        posts,
+        pagination: {
+          current: page,
+          total: Math.ceil(total / limit),
+          count: posts.length,
+          totalPosts: total
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch personalized feed',
+      error: error.message
+    });
+  }
+};
+
+// Track user interaction with post
+const trackInteraction = async (req, res) => {
+  try {
+    const { postId, interactionType, dwellTime, clickedElement, context } = req.body;
+    const userId = req.user._id;
+
+    // Validate interaction type
+    const validTypes = ['view', 'like', 'comment', 'share', 'click', 'dwell_time', 'skip'];
+    if (!validTypes.includes(interactionType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid interaction type'
+      });
+    }
+
+    // Check if post exists
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
+    // Simple interaction tracking without recommendation engine
+    // Just log the interaction for now
+    console.log(`User ${userId} ${interactionType} on post ${postId}`);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: 'Interaction tracked successfully'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to track interaction',
+      error: error.message
+    });
+  }
+};
+
+// Update post analytics
+const updatePostAnalytics = async (postId) => {
+  try {
+    const post = await Post.findById(postId);
+    if (!post) return;
+
+    // Simple analytics without UserInteraction model
+    const totalViews = post.views || 0;
+    const likes = post.likes ? post.likes.length : 0;
+    const comments = post.comments ? post.comments.length : 0;
+    const engagementScore = (likes * 3) + (comments * 5);
+
+    // Update post analytics
+    post.analytics = {
+      totalViews,
+      engagementScore,
+      lastCalculated: new Date()
+    };
+
+    // Update content quality
+    post.contentQuality = {
+      hasMedia: post.content.media && post.content.media.length > 0,
+      textLength: post.content.text ? post.content.text.length : 0,
+      tagCount: post.tags ? post.tags.length : 0,
+      qualityScore: calculateContentQualityScore(post)
+    };
+
+    await post.save();
+  } catch (error) {
+    console.error('Error updating post analytics:', error);
+  }
+};
+
+// Calculate content quality score
+const calculateContentQualityScore = (post) => {
+  let score = 0;
+  
+  // Text length score (optimal range: 50-500 characters)
+  const textLength = post.content.text ? post.content.text.length : 0;
+  if (textLength >= 50 && textLength <= 500) score += 3;
+  else if (textLength > 0) score += 1;
+  
+  // Media presence bonus
+  if (post.content.media && post.content.media.length > 0) score += 2;
+  
+  // Tag presence bonus
+  if (post.tags && post.tags.length > 0) score += 1;
+  
+  // Post type specific bonuses
+  if (post.postType === 'achievement') score += 2;
+  if (post.postType === 'recruitment') score += 1;
+  
+  return Math.min(score, 10); // Cap at 10
+};
+
+// Get user analytics
+const getUserAnalytics = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const days = parseInt(req.query.days) || 30;
+
+    // Simple analytics without recommendation engine
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Get user's posts
+    const posts = await Post.find({ author: userId, isActive: true });
+    
+    // Calculate basic analytics
+    const totalPosts = posts.length;
+    const totalLikes = posts.reduce((sum, post) => sum + (post.likes ? post.likes.length : 0), 0);
+    const totalComments = posts.reduce((sum, post) => sum + (post.comments ? post.comments.length : 0), 0);
+    const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
+
+    const analytics = {
+      totalPosts,
+      totalLikes,
+      totalComments,
+      totalViews,
+      engagementRate: totalPosts > 0 ? (totalLikes + totalComments) / totalPosts : 0
+    };
+
+    res.status(200).json({
+      success: true,
+      data: analytics
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user analytics',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createPost,
   getPosts,
+  getPersonalizedFeed,
   getPost,
   toggleLike,
   addComment,
   updatePost,
   deletePost,
-  reportPost
+  reportPost,
+  trackInteraction,
+  getUserAnalytics
 };

@@ -27,6 +27,7 @@ interface User {
   profile?: {
     displayName?: string;
     avatar?: string;
+    banner?: string;
   };
   userType: string;
 }

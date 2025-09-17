@@ -1,9 +1,18 @@
 const { verifyToken, extractToken } = require('../utils/jwt');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
 // Protect routes - require authentication
 const protect = async (req, res, next) => {
   try {
+    // Check if database is connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection not ready. Please try again in a moment.'
+      });
+    }
+
     const token = extractToken(req);
     
     if (!token) {

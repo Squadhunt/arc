@@ -2,103 +2,120 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Modern Gaming Theme - Clean & Professional */
+/* Premium Black Theme */
 body {
-  @apply bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white;
+  @apply bg-black text-white;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Custom scrollbar */
+/* Premium Black Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-secondary-900;
+  @apply bg-black;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary-500/50 rounded-full;
+  @apply bg-gray-700 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-primary-500;
+  @apply bg-gray-600;
 }
 
-/* Modern Button Styles */
+/* Custom scrollbar for modals */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-gray-800/30 rounded-full;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-500/50 rounded-full;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400/70;
+}
+
+/* Professional Button Styles */
 .btn-primary {
-  @apply bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold py-1 px-2 rounded-lg transition-all duration-200 hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
+  @apply bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
 }
 
 .btn-secondary {
-  @apply bg-gradient-to-r from-gray-800 to-gray-900 text-white font-semibold py-1 px-2 rounded-lg border border-gray-700 transition-all duration-200 hover:from-gray-700 hover:to-gray-800 hover:border-purple-500/30 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
+  @apply bg-gray-800 text-white font-semibold py-2 px-4 rounded-lg border border-gray-700 transition-all duration-200 hover:bg-gray-700 hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500/30 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
 }
 
 .btn-outline {
-  @apply border border-primary-500 text-primary-500 font-semibold py-1 px-2 rounded-lg transition-all duration-200 hover:bg-gradient-to-r hover:from-primary-500 hover:to-primary-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
+  @apply border border-blue-600 text-blue-600 font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
 }
 
 .btn-small {
-  @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold py-0.5 px-1.5 rounded-md transition-all duration-200 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
+  @apply bg-blue-600 text-white font-semibold py-1.5 px-3 rounded-md transition-all duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
 }
 
 .btn-accent {
-  @apply bg-gradient-to-r from-accent-500 to-accent-600 text-white font-semibold py-1 px-2 rounded-lg transition-all duration-200 hover:from-accent-600 hover:to-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
+  @apply bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
 }
 
-/* Modern Card Styles */
+/* Premium Black Card Styles */
 .card {
-  @apply bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700/50 rounded-xl p-3 shadow-sm hover:shadow-md transition-all duration-300 backdrop-blur-sm;
+  @apply bg-gray-900 border border-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200;
 }
 
 .card-glass {
-  @apply bg-gradient-glass backdrop-blur-md border border-gray-700/30 rounded-xl p-3 shadow-sm hover:shadow-md transition-all duration-300;
+  @apply bg-gray-900/90 backdrop-blur-sm border border-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200;
 }
 
 .card-gradient {
-  @apply bg-gradient-to-br from-gray-900 via-gray-800 to-gray-950 border border-gray-700/50 rounded-xl p-3 shadow-sm hover:shadow-md transition-all duration-300;
+  @apply bg-gray-900 border border-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200;
 }
 
 .card-premium {
-  @apply bg-gradient-to-br from-gray-900 via-gray-800 to-gray-950 border border-purple-500/20 rounded-xl p-3 shadow-sm hover:shadow-md hover:border-purple-500/40 transition-all duration-300 backdrop-blur-sm;
+  @apply bg-gray-900 border border-blue-500/30 rounded-lg p-4 shadow-sm hover:shadow-md hover:border-blue-500/50 transition-all duration-200;
 }
 
-/* Modern Input Styles */
+/* Professional Input Styles */
 .input-field {
-  @apply bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 text-white placeholder-gray-400 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all duration-200 shadow-sm;
+  @apply bg-gray-800 border border-gray-700 text-white placeholder-gray-400 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 shadow-sm;
 }
 
 .form-label {
-  @apply block text-sm font-semibold text-white mb-2;
+  @apply block text-sm font-bold text-white mb-2;
 }
 
-/* Modern Badge Styles */
+/* Premium Instagram-style Badge Styles */
 .badge {
-  @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold;
+  @apply inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold shadow-lg;
 }
 
 .badge-primary {
-  @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white;
+  @apply bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-pink-500/30;
 }
 
 .badge-secondary {
-  @apply bg-gradient-to-r from-secondary-700 to-secondary-800 text-white;
+  @apply bg-black/40 backdrop-blur-2xl border border-white/10 text-white;
 }
 
 .badge-accent {
-  @apply bg-gradient-to-r from-accent-500 to-accent-600 text-white;
+  @apply bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-purple-500/30;
 }
 
 .badge-success {
-  @apply bg-gradient-to-r from-success-500 to-success-600 text-white;
+  @apply bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-green-500/30;
 }
 
 .badge-warning {
-  @apply bg-gradient-to-r from-warning-500 to-warning-600 text-white;
+  @apply bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-yellow-500/30;
 }
 
 .badge-error {
-  @apply bg-gradient-to-r from-error-500 to-error-600 text-white;
+  @apply bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-red-500/30;
 }
 
 /* Modern Avatar Styles */
@@ -145,26 +162,26 @@ body {
   @apply bg-gradient-to-r from-secondary-950 to-secondary-900 text-white px-3 py-2 rounded-lg text-sm shadow-lg border border-secondary-800/50 backdrop-blur-md;
 }
 
-/* Gradient text effects */
+/* Professional Text Effects */
 .gradient-text {
-  @apply text-transparent bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text;
+  @apply text-blue-400;
 }
 
 .gradient-text-static {
-  @apply text-transparent bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text;
+  @apply text-blue-400;
 }
 
 .gradient-text-neon {
-  @apply text-transparent bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text;
+  @apply text-blue-400;
 }
 
-/* Modern Glass Effects */
+/* Premium Black Glass Effects */
 .glass {
-  @apply bg-gradient-glass backdrop-blur-md border border-secondary-800/30;
+  @apply bg-gray-900/90 backdrop-blur-sm border border-gray-800;
 }
 
 .glass-dark {
-  @apply bg-black/80 backdrop-blur-md border border-secondary-800/30;
+  @apply bg-gray-900/95 backdrop-blur-sm border border-gray-700;
 }
 
 /* Modern Status Indicators */
@@ -193,46 +210,112 @@ body {
   @apply border-l border-secondary-800/50;
 }
 
-/* Modern Gaming Specific Styles */
+/* Premium Instagram-style Gaming Specific Styles */
 .gaming-card {
-  @apply bg-gradient-to-br from-gray-900 via-gray-800 to-gray-950 border border-gray-700/50 rounded-xl p-3 shadow-sm hover:shadow-md hover:border-purple-500/30 transition-all duration-300 backdrop-blur-sm;
+  @apply bg-black/40 backdrop-blur-3xl border border-white/10 rounded-2xl p-4 shadow-xl hover:shadow-2xl hover:border-pink-500/30 transition-all duration-300 transform hover:scale-105;
 }
 
 .neon-border {
-  @apply border border-purple-500/50 shadow-sm;
+  @apply border border-pink-500/50 shadow-lg shadow-pink-500/20;
 }
 
 .neon-text {
-  @apply text-purple-500;
+  @apply text-pink-400;
 }
 
 .cyber-button {
-  @apply bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
+  @apply bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 hover:from-pink-600 hover:via-purple-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-xl hover:shadow-2xl transform hover:scale-105;
 }
 
-/* Modern Action Buttons */
+/* Professional Action Buttons */
 .action-button {
-  @apply bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
+  @apply bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
 }
 
 .action-button-secondary {
-  @apply bg-gradient-to-r from-gray-800 to-gray-900 text-white font-semibold py-2 px-4 rounded-lg border border-gray-700 transition-all duration-200 hover:from-gray-700 hover:to-gray-800 hover:border-purple-500/30 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
+  @apply bg-gray-800 text-white font-semibold py-2 px-4 rounded-lg border border-gray-700 transition-all duration-200 hover:bg-gray-700 hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500/30 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
 }
 
 .action-button-accent {
-  @apply bg-gradient-to-r from-pink-500 to-pink-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:from-pink-600 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
+  @apply bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 focus:ring-offset-black shadow-sm hover:shadow-md;
 }
 
-/* Modern Floating Action Button */
+/* Professional Floating Action Button */
 .fab {
-  @apply fixed bottom-4 right-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-black z-50;
+  @apply fixed bottom-4 right-4 bg-blue-600 text-white p-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-black z-50;
 }
 
 /* Floating Action Button - Enhanced */
 .floating-action-button {
-  @apply fixed bottom-6 right-6 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-black;
+  @apply fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-black;
   z-index: 9999;
   position: fixed !important;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 1024px) {
+  .mobile-padding {
+    @apply px-4 py-2;
+  }
+  
+  .mobile-text {
+    @apply text-sm;
+  }
+  
+  .mobile-spacing {
+    @apply space-y-3;
+  }
+}
+
+/* Enhanced mobile bottom navigation */
+.mobile-bottom-nav {
+  @apply fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-sm border-t border-gray-800 z-50;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Hide scrollbar for horizontal scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
+}
+
+/* Smooth scrolling for mobile */
+@media (max-width: 1024px) {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Prevent horizontal scroll on mobile */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Mobile-specific improvements for Search page */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* Better touch targets for mobile */
+  .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Mobile card improvements */
+  .card {
+    @apply p-3 lg:p-6;
+  }
+  
+  /* Mobile input improvements */
+  .input-field {
+    @apply text-sm lg:text-base;
+  }
 }
 
 /* Modern Button Layouts */
@@ -371,4 +454,20 @@ body {
 
 .transition-slow {
   @apply transition-all duration-300 ease-in-out;
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out;
 }

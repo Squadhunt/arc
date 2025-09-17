@@ -25,8 +25,12 @@ const userSchema = new mongoose.Schema({
   },
   userType: {
     type: String,
-    enum: ['player', 'team'],
+    enum: ['player', 'team', 'admin'],
     required: [true, 'User type is required']
+  },
+  isSuperUser: {
+    type: Boolean,
+    default: false
   },
   profile: {
     displayName: {
@@ -35,6 +39,10 @@ const userSchema = new mongoose.Schema({
       trim: true
     },
     avatar: {
+      type: String,
+      default: ''
+    },
+    banner: {
       type: String,
       default: ''
     },
@@ -81,6 +89,48 @@ const userSchema = new mongoose.Schema({
       title: String,
       description: String,
       date: Date
+    }],
+    gamingStats: [{
+      game: {
+        type: String,
+        required: true
+      },
+      // BGMI fields
+      characterId: String,
+      inGameName: String,
+      idLevel: Number,
+      role: String,
+      fdRatio: Number,
+      currentTier: String,
+      // Clash of Clans fields
+      playerTag: String,
+      townhallLevel: String,
+      // Clash Royale fields
+      arena: String,
+      // Chess.com fields
+      username: String,
+      rating: Number,
+      title: String,
+      puzzleRating: Number,
+      // Fortnite fields
+      epicUsername: String,
+      level: Number,
+      wins: Number,
+      kd: Number,
+      playstyle: String,
+      // Valorant fields
+      tag: String,
+      rank: String,
+      rr: Number,
+      peakRank: String,
+      // Call of Duty Mobile fields
+      uid: String,
+      // Free Fire Max fields
+      // PUBG Mobile fields
+      // Rocket League fields
+      platform: String,
+      mmr: Number,
+      // Common fields
     }],
     lookingForTeam: {
       type: Boolean,
@@ -265,7 +315,15 @@ userSchema.pre('save', function(next) {
 
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  try {
+    if (!candidatePassword || !this.password) {
+      return false;
+    }
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    console.error('Password comparison error:', error);
+    return false;
+  }
 };
 
 // Get public profile

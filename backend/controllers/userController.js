@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
-const Notification = require('../models/Notification');
+const { createFollowNotification } = require('../utils/notificationService');
 const RosterInvite = require('../models/RosterInvite');
 const StaffInvite = require('../models/StaffInvite');
 const { emitNotification, emitNotificationToMultiple } = require('../utils/notificationEmitter');
@@ -12,15 +12,42 @@ const getUsers = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const { search, userType, skillLevel, lookingForTeam, recruiting } = req.query;
+    const { search, userType, skillLevel, lookingForTeam, recruiting, followers } = req.query;
 
     // Build filter object
-    const filter = { isActive: true };
+    const filter = { 
+      isActive: true, 
+      isSuperUser: { $ne: true },
+      // Exclude duo teams (temporary teams created for tournaments)
+      username: { $not: /^duo_/ }
+    };
 
     if (userType) filter.userType = userType;
     if (skillLevel) filter['playerInfo.skillLevel'] = skillLevel;
     if (lookingForTeam === 'true') filter['playerInfo.lookingForTeam'] = true;
     if (recruiting === 'true') filter['teamInfo.recruitingFor.0'] = { $exists: true };
+
+    // If searching for followers, filter to only show users that the current user follows
+    if (followers === 'true' && req.user) {
+      const currentUser = await User.findById(req.user._id).select('following');
+      if (currentUser && currentUser.following.length > 0) {
+        filter._id = { $in: currentUser.following };
+      } else {
+        // If user has no followers, return empty array
+        return res.status(200).json({
+          success: true,
+          data: {
+            users: [],
+            pagination: {
+              current: page,
+              total: 0,
+              count: 0,
+              totalUsers: 0
+            }
+          }
+        });
+      }
+    }
 
     // Search functionality
     if (search) {
@@ -202,13 +229,7 @@ const toggleFollow = async (req, res) => {
 
       // Create notification
       try {
-        await Notification.createNotification({
-          recipient: targetUserId,
-          sender: currentUserId,
-          type: 'follow',
-          title: 'New Follower',
-          message: `${currentUser.profile.displayName || currentUser.username} started following you`
-        });
+        await createFollowNotification(targetUserId, currentUserId);
       } catch (notificationError) {
         console.error('Error creating notification:', notificationError);
       }
@@ -245,7 +266,8 @@ const getFollowers = async (req, res) => {
     const user = await User.findById(userId)
       .populate({
         path: 'followers',
-        select: 'username profile.displayName profile.avatar userType',
+        select: 'username profile.displayName profile.avatar profile.bio profile.location userType createdAt',
+        match: { username: { $not: /^duo_/ } }, // Exclude duo teams
         options: {
           skip: skip,
           limit: limit
@@ -294,7 +316,8 @@ const getFollowing = async (req, res) => {
     const user = await User.findById(userId)
       .populate({
         path: 'following',
-        select: 'username profile.displayName profile.avatar userType',
+        select: 'username profile.displayName profile.avatar profile.bio profile.location userType createdAt',
+        match: { username: { $not: /^duo_/ } }, // Exclude duo teams
         options: {
           skip: skip,
           limit: limit
@@ -1437,6 +1460,340 @@ const sendInviteMessage = async (teamId, playerId, inviteType, inviteData) => {
   }
 };
 
+// Gaming Stats CRUD operations
+const addGamingStat = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const gamingStat = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Initialize playerInfo if it doesn't exist
+    if (!user.playerInfo) {
+      user.playerInfo = {};
+    }
+    if (!user.playerInfo.gamingStats) {
+      user.playerInfo.gamingStats = [];
+    }
+
+    // Add the new gaming stat
+    user.playerInfo.gamingStats.push(gamingStat);
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Gaming stat added successfully',
+      data: {
+        gamingStat: user.playerInfo.gamingStats[user.playerInfo.gamingStats.length - 1]
+      }
+    });
+  } catch (error) {
+    console.error('Error adding gaming stat:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error adding gaming stat',
+      error: error.message
+    });
+  }
+};
+
+const updateGamingStat = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { statId } = req.params;
+    const updateData = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.playerInfo || !user.playerInfo.gamingStats) {
+      return res.status(404).json({
+        success: false,
+        message: 'No gaming stats found'
+      });
+    }
+
+    const statIndex = user.playerInfo.gamingStats.findIndex(stat => stat._id.toString() === statId);
+    if (statIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Gaming stat not found'
+      });
+    }
+
+    // Update the gaming stat
+    user.playerInfo.gamingStats[statIndex] = {
+      ...user.playerInfo.gamingStats[statIndex].toObject(),
+      ...updateData
+    };
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Gaming stat updated successfully',
+      data: {
+        gamingStat: user.playerInfo.gamingStats[statIndex]
+      }
+    });
+  } catch (error) {
+    console.error('Error updating gaming stat:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating gaming stat',
+      error: error.message
+    });
+  }
+};
+
+const deleteGamingStat = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { statId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.playerInfo || !user.playerInfo.gamingStats) {
+      return res.status(404).json({
+        success: false,
+        message: 'No gaming stats found'
+      });
+    }
+
+    const statIndex = user.playerInfo.gamingStats.findIndex(stat => stat._id.toString() === statId);
+    if (statIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Gaming stat not found'
+      });
+    }
+
+    // Remove the gaming stat
+    user.playerInfo.gamingStats.splice(statIndex, 1);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Gaming stat deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting gaming stat:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting gaming stat',
+      error: error.message
+    });
+  }
+};
+
+const getGamingStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select('playerInfo.gamingStats');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const gamingStats = user.playerInfo?.gamingStats || [];
+
+    res.status(200).json({
+      success: true,
+      data: {
+        gamingStats
+      }
+    });
+  } catch (error) {
+    console.error('Error getting gaming stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting gaming stats',
+      error: error.message
+    });
+  }
+};
+
+// Create team
+const createTeam = async (req, res) => {
+  try {
+    const { username, teamType, members, game, tournamentId } = req.body;
+    const currentUserId = req.user._id;
+
+    console.log('Creating team with data:', { username, teamType, members, game, tournamentId });
+
+    // Validate required fields
+    if (!username || !members || !Array.isArray(members) || members.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username and at least one member are required'
+      });
+    }
+
+    // Create a unique team username (max 20 chars)
+    const timestamp = Date.now().toString().slice(-8); // Last 8 digits
+    const random = Math.random().toString(36).substr(2, 4); // 4 chars
+    const teamUsername = `duo_${timestamp}_${random}`; // Max 15 chars
+
+    // Check if team username already exists (very unlikely but safe)
+    const existingUser = await User.findOne({ username: teamUsername });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Team username already exists, please try again'
+      });
+    }
+
+    // Create team user
+    const teamData = {
+      username: teamUsername,
+      email: `${teamUsername}@team.com`,
+      password: 'team123', // Temporary password
+      userType: 'team',
+      profile: {
+        displayName: username, // Use the provided team name as display name
+        bio: `Duo team for ${game || 'tournament'}`,
+        location: '',
+        website: ''
+      },
+      teamInfo: {
+        teamSize: 2, // Duo team always has 2 members
+        recruitingFor: [],
+        requirements: '',
+        teamType: 'casual',
+        members: [
+          {
+            user: currentUserId,
+            role: 'Player 1',
+            joinedAt: new Date()
+          }
+        ]
+      }
+    };
+
+    // Add the duo partner
+    if (members && members.length > 0) {
+      const memberId = members[0]; // Take first member for duo
+      const member = await User.findById(memberId);
+      if (member) {
+        teamData.teamInfo.members.push({
+          user: memberId,
+          role: 'Player 2',
+          joinedAt: new Date()
+        });
+      }
+    }
+
+    console.log('Creating team with data:', teamData);
+    const team = await User.create(teamData);
+    console.log('Team created successfully:', team._id);
+
+    // Add team to both users' joined teams
+    const allMembers = [...new Set([currentUserId, ...(members || [])])]; // Remove duplicates
+    
+    for (const memberId of allMembers) {
+      try {
+        const member = await User.findById(memberId);
+        if (member && member.playerInfo) {
+          if (!member.playerInfo.joinedTeams) {
+            member.playerInfo.joinedTeams = [];
+          }
+          member.playerInfo.joinedTeams.push({
+            team: team._id,
+            game: game || 'General',
+            role: memberId === currentUserId ? 'Player 1' : 'Player 2',
+            inGameName: null,
+            joinedAt: new Date(),
+            leftAt: null,
+            isActive: true
+          });
+          await member.save();
+          console.log(`Added team to user ${memberId}`);
+        }
+      } catch (memberError) {
+        console.error(`Error updating member ${memberId}:`, memberError);
+        // Continue with other members even if one fails
+      }
+    }
+
+    // If tournamentId is provided, add team to tournament
+    if (tournamentId) {
+      try {
+        const Tournament = require('../models/Tournament');
+        const tournament = await Tournament.findById(tournamentId);
+        
+        if (tournament) {
+          // Add team to tournament's teams array
+          tournament.teams.push(team._id);
+          
+          // For duo tournaments, we don't add individual users to participants
+          // because the team itself is the participant. Individual users get
+          // participant view through team membership check in frontend.
+          console.log('Team added to tournament. Individual users not added to participants for duo format.');
+          
+          await tournament.save();
+          console.log(`Added team and members to tournament ${tournamentId}. Participants:`, tournament.participants);
+        } else {
+          console.error(`Tournament ${tournamentId} not found`);
+        }
+      } catch (tournamentError) {
+        console.error(`Error updating tournament ${tournamentId}:`, tournamentError);
+        // Don't fail the entire operation if tournament update fails
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Duo team created successfully',
+      data: {
+        team: {
+          _id: team._id,
+          username: team.username,
+          profile: team.profile,
+          teamInfo: team.teamInfo
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating team:', error);
+    
+    // Handle validation errors specifically
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: validationErrors
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create team',
+      error: error.message
+    });
+  }
+};
 
 module.exports = {
   getUsers,
@@ -1455,5 +1812,10 @@ module.exports = {
   cancelRosterInvite,
   cancelStaffInvite,
   cancelStaffInviteByUsername,
-  leaveTeam
+  leaveTeam,
+  addGamingStat,
+  updateGamingStat,
+  deleteGamingStat,
+  getGamingStats,
+  createTeam
 };
